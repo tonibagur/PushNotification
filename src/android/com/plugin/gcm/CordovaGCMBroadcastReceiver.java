@@ -80,7 +80,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		}
 		if (notId == 0) {
 			// no notId passed, so assume we want to show all notifications, so make it a random number
-			notId = new Random().nextInt(100000);
+			//notId = new Random().nextInt(100000);
 			Log.d(TAG, "Generated random notId: " + notId);
 		} else {
 			Log.d(TAG, "Received notId: " + notId);
@@ -94,7 +94,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		notificationIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		notificationIntent.putExtra("pushBundle", extras);
 
-    PendingIntent contentIntent = PendingIntent.getActivity(context, notId, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+    	PendingIntent contentIntent = PendingIntent.getActivity(context, notId, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
 
 		int defaults = Notification.DEFAULT_ALL;
 
@@ -113,12 +113,18 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 						.setContentTitle(extras.getString("title"))
 						.setTicker(extras.getString("title"))
 						.setContentIntent(contentIntent)
-            .setColor(getColor(extras))
+            			.setColor(getColor(extras))
+            			.setGroup("0")
+            			.setGroupSummary(true)
 						.setAutoCancel(true);
+
+		//NotificationCompat.InboxStyle notiStyle = new NotificationCompat.InboxStyle();
 
 		String message = extras.getString("message");
 		if (message != null) {
 			mBuilder.setContentText(message);
+			//notiStyle.addLine(message);
+			//mBuilder.setStyle(notiStyle);
 		} else {
 			mBuilder.setContentText("<missing message content>");
 		}
