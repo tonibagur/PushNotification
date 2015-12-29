@@ -9,12 +9,14 @@ import android.content.res.Resources;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v4.app.NotificationCompat;
+import android.app.Notification;
+//import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.WakefulBroadcastReceiver;
 import android.util.Log;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONArray;
 
 import java.util.Random;
 
@@ -105,7 +107,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 			}
 		}
 
-		NotificationCompat.Builder mBuilder =
+/*		NotificationCompat.Builder mBuilder =
 				new NotificationCompat.Builder(context)
 						.setDefaults(defaults)
 						.setSmallIcon(getSmallIcon(context, extras))
@@ -116,39 +118,96 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
             			.setColor(getColor(extras))
             			.setGroup("0")
             			.setGroupSummary(true)
-						.setAutoCancel(true);
+						.setAutoCancel(true);*/
 
 		//NotificationCompat.InboxStyle notiStyle = new NotificationCompat.InboxStyle();
 
-		String message = extras.getString("message");
-		if (message != null) {
-			mBuilder.setContentText(message);
-			//notiStyle.addLine(message);
-			//mBuilder.setStyle(notiStyle);
-		} else {
-			mBuilder.setContentText("<missing message content>");
-		}
+		
 
-		String msgcnt = extras.getString("msgcnt");
+		/*else {
+			mBuilder.setContentText("<missing message content>");
+		}*/
+
+		/*String msgcnt = extras.getString("msgcnt");
 		if (msgcnt != null) {
 			mBuilder.setNumber(Integer.parseInt(msgcnt));
-		}
+		}*/
 
 		String soundName = extras.getString("sound");
 		if (soundName != null) {
 			Resources r = context.getResources();
 			int resourceId = r.getIdentifier(soundName, "raw", context.getPackageName());
 			Uri soundUri = Uri.parse("android.resource://" + context.getPackageName() + "/" + resourceId);
-			mBuilder.setSound(soundUri);
+			//mBuilder.setSound(soundUri);
 			defaults &= ~Notification.DEFAULT_SOUND;
-			mBuilder.setDefaults(defaults);
+			//mBuilder.setDefaults(defaults);
 		}
 
-		final Notification notification = mBuilder.build();
-		final int largeIcon = getLargeIcon(context, extras);
-		if (largeIcon > -1) {
-			notification.contentView.setImageViewResource(android.R.id.icon, largeIcon);
+
+		// Parse response data
+		
+		Notification.InboxStyle notiStyle = new Notification.InboxStyle();
+        notiStyle.setBigContentTitle("Qbit Notification");
+
+		String messages = extras.getString("message");
+		int nMessages = 0;
+		if (messages == null) {
+			messages = "<missing message content>"; 
+			//mBuilder.setContentText(message);
+			//notiStyle.addLine(message);
+			//mBuilder.setStyle(notiStyle);
+		}else {
+			try{
+				JSONArray messagesArray = new JSONArray(messages);
+				nMessages = messagesArray.length();
+				if(nMessages < 6){
+					for(int i = 0; i < nMessages; i++){
+						JSONObject message = (JSONObject) messagesArray.get(i);
+						String content = (String) message.get("contenido");
+						notiStyle.addLine(content);						
+					}
+					notiStyle.setSummaryText("Total "+ nMessages +" new messages");
+				}else {
+					messages = "Total "+ nMessages +" new messages";
+					notiStyle.addLine(messages);
+				}
+
+			} catch (JSONException e){
+				e.printStackTrace();
+			}
 		}
+
+		
+
+  /*      // Add the multiple lines to the style.
+        // This is strictly for providing an example of multiple lines.
+        for (int i=0; i < 5; i++) {
+            notiStyle.addLine("Message " + i + " of 6.");
+        }
+        notiStyle.setSummaryText("Total "+ nMessages +" messages");*/
+
+        /*Notification.BigTextStyle notiStyle = new Notification.BigTextStyle();
+        notiStyle.setBigContentTitle("Qbit Notification");
+        notiStyle.bigText(message);*/
+
+		Notification notification = new Notification.Builder(context)
+		    .setDefaults(defaults)
+		    //.setSound(soundUri)
+		    .setSmallIcon(getSmallIcon(context, extras))
+		    .setWhen(System.currentTimeMillis())
+		    .setContentTitle(extras.getString("title"))
+		    .setTicker(extras.getString("title"))
+		    .setContentIntent(contentIntent)
+		    .setColor(getColor(extras))
+		    .setAutoCancel(true)
+		    .setStyle(notiStyle)
+		    .build(); 
+
+		//final Notification notification = mBuilder.build();
+		//final int largeIcon = getLargeIcon(context, extras);
+		//if (largeIcon > -1) {
+		//	notification.contentView.setImageViewResource(android.R.id.icon, largeIcon);
+		//}
 
 		mNotificationManager.notify(appName, notId, notification);
 	}
