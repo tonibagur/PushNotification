@@ -71,9 +71,11 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 	}
 
 	public void createNotification(Context context, Bundle extras) {
-		int notId = 0;
+		int notId = 51626974; // Id of Notification's app ("Qbit" to Hexadecimal).
+		//int notId = 0;
 
 		try {
+
 			notId = Integer.parseInt(extras.getString("notId"));
 		} catch (NumberFormatException e) {
 			Log.e(TAG, "Number format exception - Error parsing Notification ID: " + e.getMessage());
@@ -94,10 +96,13 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 
 		Intent notificationIntent = new Intent(context, PushHandlerActivity.class);
 		notificationIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+		//boolean distinctSenders = haveMoreThanOneSender(extras.getString("messages"));
+		//extras.putBoolean("distinctSenders", distinctSenders);
 		notificationIntent.putExtra("pushBundle", extras);
-
+		//notificationIntent.putExtra("distinctSenders", haveMoreThanOneSender(extras.getString("message")));
     	PendingIntent contentIntent = PendingIntent.getActivity(context, notId, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
 
+    	// Set Notification settings
 		int defaults = Notification.DEFAULT_ALL;
 
 		if (extras.getString("defaults") != null) {
@@ -106,32 +111,6 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 			} catch (NumberFormatException ignore) {
 			}
 		}
-
-/*		NotificationCompat.Builder mBuilder =
-				new NotificationCompat.Builder(context)
-						.setDefaults(defaults)
-						.setSmallIcon(getSmallIcon(context, extras))
-						.setWhen(System.currentTimeMillis())
-						.setContentTitle(extras.getString("title"))
-						.setTicker(extras.getString("title"))
-						.setContentIntent(contentIntent)
-            			.setColor(getColor(extras))
-            			.setGroup("0")
-            			.setGroupSummary(true)
-						.setAutoCancel(true);*/
-
-		//NotificationCompat.InboxStyle notiStyle = new NotificationCompat.InboxStyle();
-
-		
-
-		/*else {
-			mBuilder.setContentText("<missing message content>");
-		}*/
-
-		/*String msgcnt = extras.getString("msgcnt");
-		if (msgcnt != null) {
-			mBuilder.setNumber(Integer.parseInt(msgcnt));
-		}*/
 
 		String soundName = extras.getString("sound");
 		if (soundName != null) {
@@ -143,71 +122,71 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 			//mBuilder.setDefaults(defaults);
 		}
 
-
-		// Parse response data
-		
+		// Creates Notification style
 		Notification.InboxStyle notiStyle = new Notification.InboxStyle();
-        notiStyle.setBigContentTitle("Qbit Notification");
+        notiStyle.setBigContentTitle("Qbit");
 
-		String messages = extras.getString("message");
+        // Get messages of response
+		String messages = extras.getString("messagesNotRead");
 		int nMessages = 0;
 		if (messages == null) {
-			messages = "<missing message content>"; 
-			//mBuilder.setContentText(message);
-			//notiStyle.addLine(message);
-			//mBuilder.setStyle(notiStyle);
+			notiStyle.addLine("<missing message content>");				
 		}else {
 			try{
+				// Parse response data
 				JSONArray messagesArray = new JSONArray(messages);
+				// Number of messages unread.
 				nMessages = messagesArray.length();
-				if(nMessages < 6){
-					for(int i = 0; i < nMessages; i++){
-						JSONObject message = (JSONObject) messagesArray.get(i);
-						String content = (String) message.get("contenido");
-						notiStyle.addLine(content);						
-					}
-					notiStyle.setSummaryText("Total "+ nMessages +" new messages");
-				}else {
-					messages = "Total "+ nMessages +" new messages";
-					notiStyle.addLine(messages);
+				// Max messages displayed in InboxNotification.
+				int maxDisplayedMessages = 5;
+				// Number of messages to show.
+				int messagesDisplayed = (nMessages > maxDisplayedMessages) ? maxDisplayedMessages : nMessages; 	
+				
+				// Fill Notification with messages
+				for(int i = 0; i < messagesDisplayed; i++){
+					JSONObject message = (JSONObject) messagesArray.get(i);
+					// If message is from unknown sender takes phonenumber("username").
+					String sender = (String) message.get("contact_name");
+					if(sender.equals("") || sender == null){
+						sender = (String) message.get("username");
+					}					
+					String content = (String) message.get("contenido");
+					notiStyle.addLine(sender + ": " +content);						
 				}
 
+				// If there are more messages than maximum displayed Notification will have a summarytext.
+				if(nMessages > maxDisplayedMessages){
+					notiStyle.setSummaryText("+ "+ (nMessages - maxDisplayedMessages) +" new messages");
+				}
 			} catch (JSONException e){
 				e.printStackTrace();
 			}
 		}
-
-		
-
-  /*      // Add the multiple lines to the style.
-        // This is strictly for providing an example of multiple lines.
-        for (int i=0; i < 5; i++) {
-            notiStyle.addLine("Message " + i + " of 6.");
-        }
-        notiStyle.setSummaryText("Total "+ nMessages +" messages");*/
-
-        /*Notification.BigTextStyle notiStyle = new Notification.BigTextStyle();
-        notiStyle.setBigContentTitle("Qbit Notification");
-        notiStyle.bigText(message);*/
-
+  
 		Notification notification = new Notification.Builder(context)
 		    .setDefaults(defaults)
 		    //.setSound(soundUri)
 		    .setSmallIcon(getSmallIcon(context, extras))
 		    .setWhen(System.currentTimeMillis())
-		    .setContentTitle(extras.getString("title"))
+		    .setContentTitle("You have " + nMessages + " new messages")
 		    .setTicker(extras.getString("title"))
 		    .setContentIntent(contentIntent)
 		    .setColor(getColor(extras))
+		    .setNumber(Integer.parseInt(extras.getString("msgcnt")))
 		    .setAutoCancel(true)
 		    .setStyle(notiStyle)
 		    .build(); 
 
-		//final Notification notification = mBuilder.build();
-		//final int largeIcon = getLargeIcon(context, extras);
-		//if (largeIcon > -1) {
-		//	notification.contentView.setImageViewResource(android.R.id.icon, largeIcon);
-		//}
+		/*String msgcnt = extras.getString("msgcnt");
+		if (msgcnt != null) {
+			notification.setNumber(Integer.parseInt(msgcnt));
+		}*/
+		
+		final int largeIcon = getLargeIcon(context, extras);
+		Log.e(TAG, "largeIcon: " +largeIcon);
+		if (largeIcon > -1) {
+			notification.contentView.setImageViewResource(android.R.id.icon, largeIcon);
+		}
 
 		mNotificationManager.notify(appName, notId, notification);
 	}
@@ -221,16 +200,45 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		return (String) appName;
 	}
 
-  private int getColor(Bundle extras) {
-    int theColor = 0; // default, transparent
-    final String passedColor = extras.getString("color"); // something like "#FFFF0000", or "red"
-    if (passedColor != null) {
-      try {
-        theColor = Color.parseColor(passedColor);
-      } catch (IllegalArgumentException ignore) {}
-    }
-    return theColor;
-  }
+	/**
+	 * Check if there are more than one sender in the received messages.
+	 *
+	 * @return true if there are disntint sender or false otherwise.
+	 */
+	private boolean haveMoreThanOneSender(String messages) {
+		boolean distinctSenders = false;
+
+		if(messages != null){
+			try{
+				JSONArray messagesArray = new JSONArray(messages);
+				// First sender to compare.
+				JSONObject messageA = (JSONObject) messagesArray.get(0);				
+				String senderA = (String) messageA.get("version_create");
+				
+				for(int i = 0; i < messagesArray.length(); i++){
+					JSONObject message = (JSONObject) messagesArray.get(i);	
+					String senderB = (String) message.get("version_create");
+					if( !(senderA.equals(senderB)) ){
+						return !distinctSenders;
+					}
+				}
+			} catch (JSONException e){
+				e.printStackTrace();
+			}
+		}
+		return distinctSenders;
+	}
+
+	private int getColor(Bundle extras) {
+		int theColor = 0; // default, transparent
+		final String passedColor = extras.getString("color"); // something like "#FFFF0000", or "red"
+		if (passedColor != null) {
+			try {
+				theColor = Color.parseColor(passedColor);
+			} catch (IllegalArgumentException ignore) {}
+			}
+		return theColor;
+	}
 
 	private int getSmallIcon(Context context, Bundle extras) {
 
