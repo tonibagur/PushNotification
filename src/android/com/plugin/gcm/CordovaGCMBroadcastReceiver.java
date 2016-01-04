@@ -10,6 +10,9 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Notification;
+import android.app.Notification.Style;
+import android.app.Notification.BigTextStyle;
+import android.app.Notification.InboxStyle;
 //import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.WakefulBroadcastReceiver;
 import android.util.Log;
@@ -17,7 +20,9 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
-
+import 	java.io.PrintWriter;
+import java.io.Writer;
+import java.io.StringWriter;
 import java.util.Random;
 
 /*
@@ -71,37 +76,17 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 	}
 
 	public void createNotification(Context context, Bundle extras) {
+		Log.i("PushPlugin", "createNotification");
 		int notId = 51626974; // Id of Notification's app ("Qbit" to Hexadecimal).
-		//int notId = 0;
-
-		try {
-
-			notId = Integer.parseInt(extras.getString("notId"));
-		} catch (NumberFormatException e) {
-			Log.e(TAG, "Number format exception - Error parsing Notification ID: " + e.getMessage());
-		} catch (Exception e) {
-			Log.e(TAG, "Number format exception - Error parsing Notification ID" + e.getMessage());
-		}
-		if (notId == 0) {
-			// no notId passed, so assume we want to show all notifications, so make it a random number
-			//notId = new Random().nextInt(100000);
-			Log.d(TAG, "Generated random notId: " + notId);
-		} else {
-			Log.d(TAG, "Received notId: " + notId);
-		}
-
-
+		
 		NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 		String appName = getAppName(context);
 
 		Intent notificationIntent = new Intent(context, PushHandlerActivity.class);
 		notificationIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-		//boolean distinctSenders = haveMoreThanOneSender(extras.getString("messages"));
-		//extras.putBoolean("distinctSenders", distinctSenders);
 		notificationIntent.putExtra("pushBundle", extras);
-		//notificationIntent.putExtra("distinctSenders", haveMoreThanOneSender(extras.getString("message")));
     	PendingIntent contentIntent = PendingIntent.getActivity(context, notId, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-
+    	String error_str="";
     	// Set Notification settings
 		int defaults = Notification.DEFAULT_ALL;
 
@@ -127,8 +112,13 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
         notiStyle.setBigContentTitle("Qbit");
 
         // Get messages of response
+        int nSenders = 1;
 		String messages = extras.getString("messagesNotRead");
 		int nMessages = 0;
+
+		int bucle = 22;
+
+		String parseJson ="";
 		if (messages == null) {
 			notiStyle.addLine("<missing message content>");				
 		}else {
@@ -136,14 +126,16 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 				// Parse response data
 				JSONArray messagesArray = new JSONArray(messages);
 				// Number of messages unread.
-				nMessages = messagesArray.length();
+				JSONObject row = (JSONObject) messagesArray.get(0);
+				//nMessages = messagesArray.length();
+			    nMessages = Integer.parseInt((String) row.get("num"));
+				nSenders = Integer.parseInt(extras.getString("nSenders"));
 				// Max messages displayed in InboxNotification.
 				int maxDisplayedMessages = 5;
-				// Number of messages to show.
-				int messagesDisplayed = (nMessages > maxDisplayedMessages) ? maxDisplayedMessages : nMessages; 	
+				int maxIter = if(nMessages > 5) ? 5 : nMessages;
 				
 				// Fill Notification with messages
-				for(int i = 0; i < messagesDisplayed; i++){
+				for(int i = 0; i < maxIter; i++){
 					JSONObject message = (JSONObject) messagesArray.get(i);
 					// If message is from unknown sender takes phonenumber("username").
 					String sender = (String) message.get("contact_name");
@@ -151,24 +143,37 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 						sender = (String) message.get("username");
 					}					
 					String content = (String) message.get("contenido");
-					notiStyle.addLine(sender + ": " +content);						
+					parseJson += content;
+					notiStyle.addLine(sender + ": " +content);
 				}
-
+				
 				// If there are more messages than maximum displayed Notification will have a summarytext.
 				if(nMessages > maxDisplayedMessages){
-					notiStyle.setSummaryText("+ "+ (nMessages - maxDisplayedMessages) +" new messages");
+					if(nSenders == 1){
+						notiStyle.setSummaryText("+ "+ (nMessages - maxDisplayedMessages) +" new messages");
+					}else {
+						notiStyle.setSummaryText("+ "+ (nMessages - maxDisplayedMessages) +" new messages from " + nSenders + " chats");
+					}
 				}
 			} catch (JSONException e){
-				e.printStackTrace();
+				Writer writer = new StringWriter();
+				PrintWriter printWriter = new PrintWriter(writer);
+				e.printStackTrace(printWriter);
+				error_str = writer.toString();
 			}
 		}
-  
+  		
+  		String text = "You have " + nMessages + " new messages";
+  		if(nSenders > 1){
+  			text = "You have " + nMessages + " new messages from " + nSenders + " chats";
+  		}
 		Notification notification = new Notification.Builder(context)
 		    .setDefaults(defaults)
 		    //.setSound(soundUri)
 		    .setSmallIcon(getSmallIcon(context, extras))
 		    .setWhen(System.currentTimeMillis())
-		    .setContentTitle("You have " + nMessages + " new messages")
+		    .setContentTitle("Qbit")
+		    .setContentText(text)
 		    .setTicker(extras.getString("title"))
 		    .setContentIntent(contentIntent)
 		    .setColor(getColor(extras))
@@ -177,11 +182,6 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		    .setStyle(notiStyle)
 		    .build(); 
 
-		/*String msgcnt = extras.getString("msgcnt");
-		if (msgcnt != null) {
-			notification.setNumber(Integer.parseInt(msgcnt));
-		}*/
-		
 		final int largeIcon = getLargeIcon(context, extras);
 		Log.e(TAG, "largeIcon: " +largeIcon);
 		if (largeIcon > -1) {
@@ -198,35 +198,6 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 						.getApplicationLabel(context.getApplicationInfo());
 
 		return (String) appName;
-	}
-
-	/**
-	 * Check if there are more than one sender in the received messages.
-	 *
-	 * @return true if there are disntint sender or false otherwise.
-	 */
-	private boolean haveMoreThanOneSender(String messages) {
-		boolean distinctSenders = false;
-
-		if(messages != null){
-			try{
-				JSONArray messagesArray = new JSONArray(messages);
-				// First sender to compare.
-				JSONObject messageA = (JSONObject) messagesArray.get(0);				
-				String senderA = (String) messageA.get("version_create");
-				
-				for(int i = 0; i < messagesArray.length(); i++){
-					JSONObject message = (JSONObject) messagesArray.get(i);	
-					String senderB = (String) message.get("version_create");
-					if( !(senderA.equals(senderB)) ){
-						return !distinctSenders;
-					}
-				}
-			} catch (JSONException e){
-				e.printStackTrace();
-			}
-		}
-		return distinctSenders;
 	}
 
 	private int getColor(Bundle extras) {
