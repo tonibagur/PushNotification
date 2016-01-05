@@ -116,9 +116,6 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		String messages = extras.getString("messagesNotRead");
 		int nMessages = 0;
 
-		int bucle = 22;
-
-		String parseJson ="";
 		if (messages == null) {
 			notiStyle.addLine("<missing message content>");				
 		}else {
@@ -132,7 +129,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 				nSenders = Integer.parseInt(extras.getString("nSenders"));
 				// Max messages displayed in InboxNotification.
 				int maxDisplayedMessages = 5;
-				int maxIter = if(nMessages > 5) ? 5 : nMessages;
+				int maxIter = (nMessages > maxDisplayedMessages) ? maxDisplayedMessages : nMessages;
 				
 				// Fill Notification with messages
 				for(int i = 0; i < maxIter; i++){
@@ -143,7 +140,6 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 						sender = (String) message.get("username");
 					}					
 					String content = (String) message.get("contenido");
-					parseJson += content;
 					notiStyle.addLine(sender + ": " +content);
 				}
 				
@@ -165,7 +161,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
   		
   		String text = "You have " + nMessages + " new messages";
   		if(nSenders > 1){
-  			text = "You have " + nMessages + " new messages from " + nSenders + " chats";
+  			text = nMessages + " new messages from " + nSenders + " chats";
   		}
 		Notification notification = new Notification.Builder(context)
 		    .setDefaults(defaults)
