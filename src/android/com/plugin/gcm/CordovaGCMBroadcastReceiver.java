@@ -113,12 +113,17 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 
         // Get messages of response
         int nSenders = 1;
-		String messages = extras.getString("messagesNotRead");
 		int nMessages = 0;
+		String message = extras.getString("message");
+		String messages = extras.getString("messagesNotRead");
+		
 
-		if (messages == null) {
+		if (messages == null && message == null) {
 			notiStyle.addLine("<missing message content>");				
-		}else {
+		}else if(messages == null && message != null){
+			notiStyle.addLine(message);
+			nMessages++;
+		} else{
 			try{
 				// Parse response data
 				JSONArray messagesArray = new JSONArray(messages);
@@ -133,13 +138,13 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 				
 				// Fill Notification with messages
 				for(int i = 0; i < maxIter; i++){
-					JSONObject message = (JSONObject) messagesArray.get(i);
-					// If message is from unknown sender takes phonenumber("username").
-					String sender = (String) message.get("contact_name");
+					JSONObject messageJson = (JSONObject) messagesArray.get(i);
+					// If messageJson is from unknown sender takes phonenumber("username").
+					String sender = (String) messageJson.get("contact_name");
 					if(sender.equals("") || sender == null){
-						sender = (String) message.get("username");
+						sender = (String) messageJson.get("username");
 					}					
-					String content = (String) message.get("contenido");
+					String content = (String) messageJson.get("contenido");
 					notiStyle.addLine(sender + ": " +content);
 				}
 				
