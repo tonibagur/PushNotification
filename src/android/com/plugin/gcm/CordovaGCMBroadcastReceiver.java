@@ -30,7 +30,14 @@ import java.util.Random;
  * com.plugin.gcm.GcmntentService, instead of your_package.GcmIntentService 
  */
 public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
+
 	private static final String TAG = "GcmIntentService";
+	private String errorStr = "";
+
+	/** Id of Notification's app ("Qbit" to Hexadecimal) */
+	private static final int NOT_ID = 51626974;
+	/** Max messages displayed in Notification */
+	private static final int MAXC_DISPLAYED_MESSAGES = 5;
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -75,25 +82,35 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		}
 	}
 
+	/**
+	 * Build a Notification and launch to Notification Drawer.
+	 * 
+	 * @param context Context of App
+	 * @param extras  Information received from GCM.
+	 */
 	public void createNotification(Context context, Bundle extras) {
-		Log.i("PushPlugin", "createNotification");
-		int notId = 51626974; // Id of Notification's app ("Qbit" to Hexadecimal).
+		Log.i(TAG, "createNotification");
 		
+		//  Get Notification service of system.
 		NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 		String appName = getAppName(context);
-
+		
+		// Creates Intent when Notification will be clicked
 		Intent notificationIntent = new Intent(context, PushHandlerActivity.class);
 		notificationIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		notificationIntent.putExtra("pushBundle", extras);
-    	PendingIntent contentIntent = PendingIntent.getActivity(context, notId, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-    	String error_str="";
+    	PendingIntent contentIntent = PendingIntent.getActivity(context, NOT_ID, notificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+    		
     	// Set Notification settings
 		int defaults = Notification.DEFAULT_ALL;
-
 		if (extras.getString("defaults") != null) {
 			try {
 				defaults = Integer.parseInt(extras.getString("defaults"));
-			} catch (NumberFormatException ignore) {
+			} catch (NumberFormatException e) {
+				Writer writer = new StringWriter();
+				PrintWriter printWriter = new PrintWriter(writer);
+				e.printStackTrace(printWriter);
+				errorStr = writer.toString();
 			}
 		}
 
@@ -109,32 +126,36 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 
 		// Creates Notification style
 		Notification.InboxStyle notiStyle = new Notification.InboxStyle();
-        notiStyle.setBigContentTitle("Qbit");
+	    notiStyle.setBigContentTitle("Qbit");// Title 
 
         // Get messages of response
-        int nSenders = 1;
+	    int nSenders = 1;
 		int nMessages = 0;
-		String message = extras.getString("message");
-		String messages = extras.getString("messagesNotRead");
+		String message = extras.getString("message");// Last message.
+		String messages = extras.getString("messagesNotRead");// All unread messages.
 		
-
+		// If messages are null
 		if (messages == null && message == null) {
 			notiStyle.addLine("<missing message content>");				
-		}else if(messages == null && message != null){
+		}
+		// This is Qbit case
+		else if(messages == null && message != null){
 			notiStyle.addLine(message);
 			nMessages++;
-		} else{
+		} 
+		// One or more direct messages (Qbits included).
+		else{
 			try{
-				// Parse response data
+				// Parse response data.
 				JSONArray messagesArray = new JSONArray(messages);
 				// Number of messages unread.
 				JSONObject row = (JSONObject) messagesArray.get(0);
-				//nMessages = messagesArray.length();
+			    // Total unread messages.
 			    nMessages = Integer.parseInt((String) row.get("num"));
+				// Number of distinct senders.
 				nSenders = Integer.parseInt(extras.getString("nSenders"));
-				// Max messages displayed in InboxNotification.
-				int maxDisplayedMessages = 5;
-				int maxIter = (nMessages > maxDisplayedMessages) ? maxDisplayedMessages : nMessages;
+
+				int maxIter = (nMessages > MAX_DISPLAYED_MESSAGES) ? MAX_DISPLAYED_MESSAGES : nMessages;
 				
 				// Fill Notification with messages
 				for(int i = 0; i < maxIter; i++){
@@ -145,29 +166,33 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 						sender = (String) messageJson.get("username");
 					}					
 					String content = (String) messageJson.get("contenido");
+					// Builds String
 					notiStyle.addLine(sender + ": " +content);
 				}
 				
 				// If there are more messages than maximum displayed Notification will have a summarytext.
-				if(nMessages > maxDisplayedMessages){
+				if(nMessages > MAX_DISPLAYED_MESSAGES){
 					if(nSenders == 1){
-						notiStyle.setSummaryText("+ "+ (nMessages - maxDisplayedMessages) +" new messages");
+						notiStyle.setSummaryText("+ "+ (nMessages - MAX_DISPLAYED_MESSAGES) +" new messages");
 					}else {
-						notiStyle.setSummaryText("+ "+ (nMessages - maxDisplayedMessages) +" new messages from " + nSenders + " chats");
+						notiStyle.setSummaryText("+ "+ (nMessages - MAX_DISPLAYED_MESSAGES) +" new messages from " + nSenders + " chats");
 					}
 				}
 			} catch (JSONException e){
 				Writer writer = new StringWriter();
 				PrintWriter printWriter = new PrintWriter(writer);
 				e.printStackTrace(printWriter);
-				error_str = writer.toString();
+				errorStr = writer.toString();
 			}
 		}
   		
+		// String message's if notification is collapsed(contract form).
   		String text = "You have " + nMessages + " new messages";
   		if(nSenders > 1){
   			text = nMessages + " new messages from " + nSenders + " chats";
   		}
+
+		// Builds Notification.
 		Notification notification = new Notification.Builder(context)
 		    .setDefaults(defaults)
 		    //.setSound(soundUri)
@@ -188,8 +213,9 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		if (largeIcon > -1) {
 			notification.contentView.setImageViewResource(android.R.id.icon, largeIcon);
 		}
-
-		mNotificationManager.notify(appName, notId, notification);
+		
+		// Launch Notification.
+		mNotificationManager.notify(appName, NOT_ID, notification);
 	}
 
 	private static String getAppName(Context context) {
