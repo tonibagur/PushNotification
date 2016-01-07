@@ -37,7 +37,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 	/** Id of Notification's app ("Qbit" to Hexadecimal) */
 	private static final int NOT_ID = 51626974;
 	/** Max messages displayed in Notification */
-	private static final int MAXC_DISPLAYED_MESSAGES = 5;
+	private static final int MAX_DISPLAYED_MESSAGES = 5;
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
