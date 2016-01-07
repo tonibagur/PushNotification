@@ -206,6 +206,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		    .setNumber(Integer.parseInt(extras.getString("msgcnt")))
 		    .setAutoCancel(true)
 		    .setStyle(notiStyle)
+		    .setLights(0xff8cfaf4,1000,1000)
 		    .build(); 
 
 		final int largeIcon = getLargeIcon(context, extras);
