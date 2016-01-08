@@ -75,7 +75,11 @@ static char launchNotificationKey;
     [pushHandler notificationReceived];
   } else {
     //save it for later
-    self.launchNotification = userInfo;
+    self.launchNotification = [userInfo mutableCopy];
+    if ([self.launchNotification valueForKey:@"messagesNotRead"]!=nil)
+    {
+        [self.launchNotification removeObjectForKey:@"messagesNotRead"];
+    }
   }
 }
 
