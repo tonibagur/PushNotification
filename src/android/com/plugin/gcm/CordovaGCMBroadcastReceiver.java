@@ -161,7 +161,11 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 				for(int i = 0; i < maxIter; i++){
 					JSONObject messageJson = (JSONObject) messagesArray.get(i);
 					// If messageJson is from unknown sender takes phonenumber("username").
-					String sender = (String) messageJson.get("contact_name");
+					Object senderObject = messageJson.get("contact_name");
+					String sender = null;
+					if(senderObject != null){
+					 	sender = (String) messageJson.get("contact_name");
+					}
 					if(sender.equals("") || sender == null){
 						sender = (String) messageJson.get("username");
 					}					
@@ -202,11 +206,11 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		    .setContentText(text)
 		    .setTicker(extras.getString("title"))
 		    .setContentIntent(contentIntent)
-		    .setColor(getColor(extras))
+		    //.setColor(getColor(extras))
 		    .setNumber(Integer.parseInt(extras.getString("msgcnt")))
 		    .setAutoCancel(true)
 		    .setStyle(notiStyle)
-		    .setLights(0xff8cfaf4,1000,1000)
+		    //.setLights(0x01060016,1000,1000)
 		    .build(); 
 
 		final int largeIcon = getLargeIcon(context, extras);
