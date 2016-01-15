@@ -10,10 +10,13 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Notification;
-import android.app.Notification.Style;
-import android.app.Notification.BigTextStyle;
-import android.app.Notification.InboxStyle;
-//import android.support.v4.app.NotificationCompat;
+//import android.app.Notification.Style;
+//import android.app.Notification.BigTextStyle;
+//import android.app.Notification.InboxStyle;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationCompat.Builder;
+import android.support.v4.app.NotificationCompat.InboxStyle;
+import android.support.v4.app.NotificationCompat.BigTextStyle;
 import android.support.v4.content.WakefulBroadcastReceiver;
 import android.util.Log;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
@@ -125,7 +128,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		}
 
 		// Creates Notification style
-		Notification.InboxStyle notiStyle = new Notification.InboxStyle();
+		NotificationCompat.InboxStyle notiStyle = new NotificationCompat.InboxStyle();
 	    notiStyle.setBigContentTitle("Qbit");// Title 
 
         // Get messages of response
@@ -197,7 +200,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
   		}
 
 		// Builds Notification.
-		Notification notification = new Notification.Builder(context)
+		Notification notification = new NotificationCompat.Builder(context)
 		    .setDefaults(defaults)
 		    //.setSound(soundUri)
 		    .setSmallIcon(getSmallIcon(context, extras))
@@ -206,7 +209,7 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		    .setContentText(text)
 		    .setTicker(extras.getString("title"))
 		    .setContentIntent(contentIntent)
-		    //.setColor(getColor(extras))
+		    .setColor(getColor(extras))
 		    .setNumber(Integer.parseInt(extras.getString("msgcnt")))
 		    .setAutoCancel(true)
 		    .setStyle(notiStyle)
