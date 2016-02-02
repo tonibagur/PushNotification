@@ -136,6 +136,8 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 		int nMessages = 0;
 		String message = extras.getString("message");// Last message.
 		String messages = extras.getString("messagesNotRead");// All unread messages.
+		Log.d("message", message);
+		Log.d("messagesNotRead", messages);
 		
 		// If messages are null
 		if (messages == null && message == null) {
@@ -165,11 +167,11 @@ public class CordovaGCMBroadcastReceiver extends WakefulBroadcastReceiver {
 					JSONObject messageJson = (JSONObject) messagesArray.get(i);
 					// If messageJson is from unknown sender takes phonenumber("username").
 					Object senderObject = messageJson.get("contact_name");
-					String sender = null;
-					if(senderObject != null){
+					String sender = senderObject.toString();
+					if(!sender.equals("null") && !sender.equals("") ){
 					 	sender = (String) messageJson.get("contact_name");
 					}
-					if(sender.equals("") || sender == null){
+					if(sender.equals("") || sender.equals("null")){
 						sender = (String) messageJson.get("username");
 					}					
 					String content = (String) messageJson.get("contenido");
