@@ -32,9 +32,16 @@ static char launchNotificationKey;
 
 - (AppDelegate *)swizzled_init
 {
-  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(createNotificationChecker:)
-                                               name:@"UIApplicationDidFinishLaunchingNotification" object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(createNotificationChecker:)
+                                               name:UIApplicationDidFinishLaunchingNotification
+                                             object:nil];
   
+  [[NSNotificationCenter defaultCenter]addObserver:self
+                                          selector:@selector(onApplicationDidBecomeActive:)
+                                              name:UIApplicationDidBecomeActiveNotification
+                                            object:nil];
+
   // This actually calls the original init method over in AppDelegate. Equivilent to calling super
   // on an overrided method, this is not recursive, although it appears that way. neat huh?
   return [self swizzled_init];
@@ -49,6 +56,23 @@ static char launchNotificationKey;
     NSDictionary *launchOptions = [notification userInfo];
     if (launchOptions)
       self.launchNotification = [launchOptions objectForKey: @"UIApplicationLaunchOptionsRemoteNotificationKey"];
+  }
+}
+
+- (void)onApplicationDidBecomeActive:(NSNotification *)notification
+{
+  NSLog(@"active");
+  
+  UIApplication *application = notification.object;
+
+  application.applicationIconBadgeNumber = 0;
+  
+  if (self.launchNotification) {
+    PushPlugin *pushHandler = [self getCommandInstance:@"PushPlugin"];
+    
+    pushHandler.notificationMessage = self.launchNotification;
+    self.launchNotification = nil;
+    [pushHandler performSelectorOnMainThread:@selector(notificationReceived) withObject:pushHandler waitUntilDone:NO];
   }
 }
 
@@ -107,22 +131,6 @@ static char launchNotificationKey;
 }
 #endif
 
-
-- (void)applicationDidBecomeActive:(UIApplication *)application {
-  
-  NSLog(@"active");
-  
-  //zero badge
-  application.applicationIconBadgeNumber = 0;
-  
-  if (self.launchNotification) {
-    PushPlugin *pushHandler = [self getCommandInstance:@"PushPlugin"];
-    
-    pushHandler.notificationMessage = self.launchNotification;
-    self.launchNotification = nil;
-    [pushHandler performSelectorOnMainThread:@selector(notificationReceived) withObject:pushHandler waitUntilDone:NO];
-  }
-}
 
 // The accessors use an Associative Reference since you can't define a iVar in a category
 // http://developer.apple.com/library/ios/#documentation/cocoa/conceptual/objectivec/Chapters/ocAssociativeReferences.html

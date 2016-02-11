@@ -55,9 +55,7 @@ public class PushPlugin extends CordovaPlugin {
 	Context context;
 
 	@Override
-	public boolean execute(String action, JSONArray data, CallbackContext callbackContext) {
-
-		boolean result;
+	public boolean execute(final String action, final JSONArray data, final CallbackContext callbackContext) {
 
 		Log.v(TAG, "execute: action=" + action);
 
@@ -86,10 +84,8 @@ public class PushPlugin extends CordovaPlugin {
 					sendJavascript(new JSONObject().put("event", "registered").put("regid", regid));
 					callbackContext.success(regid);
 				}
-				result = true;
 			} catch (JSONException e) {
 				Log.e(TAG, "execute: Got JSON Exception " + e.getMessage());
-				result = false;
 				callbackContext.error(e.getMessage());
 			}
 
@@ -98,6 +94,7 @@ public class PushPlugin extends CordovaPlugin {
 				sendExtras(gCachedExtras);
 				gCachedExtras = null;
 			}
+			return true;
 
 		} else if (ARE_NOTIFICATIONS_ENABLED.equals(action)) {
 
@@ -105,28 +102,32 @@ public class PushPlugin extends CordovaPlugin {
 			final boolean registered = !getRegistrationId(getApplicationContext()).isEmpty();
 			Log.d(TAG, "areNotificationsEnabled? " + registered);
 			callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, registered));
-			result = true;
+			return true;
 
 		} else if (UNREGISTER.equals(action)) {
 
-			GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(getApplicationContext());
-			try {
-				gcm.unregister();
-				removeRegistrationId(getApplicationContext());
-			} catch (IOException exception) {
-				Log.d(TAG, "IOException!");
-			}
+			cordova.getThreadPool().execute(new Runnable() {
+				public void run() {
+					GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(getApplicationContext());
+					try {
+						gcm.unregister();
+						removeRegistrationId(getApplicationContext());
+					} catch (IOException exception) {
+						Log.d(TAG, "IOException!");
+					}
 
-			Log.v(TAG, "UNREGISTER");
-			result = true;
-			callbackContext.success();
+					Log.v(TAG, "UNREGISTER");
+
+					callbackContext.success();
+				}
+			});
+			return true;
+
 		} else {
-			result = false;
 			Log.e(TAG, "Invalid action : " + action);
 			callbackContext.error("Invalid action : " + action);
+			return false;
 		}
-
-		return result;
 	}
 
 	/**
